@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المہریہ کمپیوٹر اکیڈمی - پورٹل</title>
+    <!-- Tailwind CSS کو فوری طور پر لوڈ کریں -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Libraries for PDF Generation: html2canvas & jsPDF -->
+    <!-- یہ لائبریریاں پورے فارم کا ایک سکرین شاٹ لے کر پی ڈی ایف بناتی ہیں -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- نستعلیق اور روبوٹو فونٹس -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght=400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* CSS کو کم کر دیا گیا ہے تاکہ یہ تیزی سے رینڈر ہو */
+        body {
+            font-family: 'Noto Nastaliq Urdu', serif;
+            background-color: #f3f4f6; /* ہلکا گرے/سفید پس منظر */
+        }
+        .font-en { font-family: 'Roboto', sans-serif; }
+        /* پی ٹی آئی کے رنگوں پر مبنی تھیم */
+        .bg-pti-red { background: linear-gradient(135deg, #800000 0%, #A52A2A 100%); }
+        .bg-pti-green { background-color: #006400; }
+        .lang-switch {
+            position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.8);
+            color: #800000; padding: 2px 7px; border-radius: 10px; font-size: 0.7rem;
+            cursor: pointer; z-index: 60; border: 1px solid #800000;
+        }
+        input:not([type="file"]), select, textarea { 
+            width: 100%; border: 1px solid #ccc; padding: 0.75rem; border-radius: 0.5rem; text-align: right; margin-top: 4px; 
+            background-color: #fdfdfd; 
+        }
+        .section-card { 
+            background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 10px -2px rgba(0,0,0,0.1);
+        }
+        .nav-button { transition: transform 0.2s; cursor: pointer; z-index: 20; }
+        .nav-button:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); }
+        .photo-placeholder {
+            width: 100px; height: 100px; border: 2px dashed #ccc; background-color: #f9f9f9;
+            display: flex; justify-content: center; align-items: center; text-align: center;
+            font-size: 0.8rem; color: #a0a0a0; border-radius: 0.5rem; overflow: hidden;
+            margin: 0 auto 10px; background-size: cover; background-position: center;
+            background-repeat: no-repeat;
+        }
+        /* لوڈنگ اوورلے کو اب عام طور پر چھپایا جائے گا */
+        .loading-overlay { display: none; } 
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .spinner {
+          border: 4px solid rgba(0, 0, 0, 0.1);
+          border-top: 4px solid #006400;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          animation: spin 1s linear infinite;
+        }
+        .admin-table th, .admin-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            text-align: right;
+            vertical-align: top;
+        }
+        .admin-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        /* پرنٹنگ کے دوران کچھ عناصر کو چھپانے کے لیے سٹائل (جیسے بٹن، ہیڈر وغیرہ) */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
+        /* پرنٹنگ کے دوران ٹیکسٹ کو LTR رکھنا */
+        .ltr-on-print {
+            direction: ltr !important;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Loading Overlay (اب صرف ضرورت پڑنے پر ظاہر ہوگا) -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex justify-center items-center">
+        <div class="bg-white p-8 rounded-lg shadow-2xl max-w-sm mx-auto text-center flex flex-col items-center">
+            <div class="spinner"></div>
+            <p class="mt-4 text-lg text-gray-700 font-bold" id="loadingMessage">براہ کرم انتظار کریں...</p>
+        </div>
+    </div>
+
+    <!-- Message Box (Instead of alert/confirm) -->
+    <div id="messageBox" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex justify-center items-center">
+        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm mx-auto text-center" dir="rtl">
+            <h3 id="messageTitle" class="text-xl font-bold mb-3 text-pti-red"></h3>
+            <p id="messageText" class="text-gray-700 mb-4"></p>
+            <button onclick="hideMessage()" class="bg-pti-red text-white py-2 px-6 rounded-lg font-bold hover:bg-red-900 transition">ٹھیک ہے</button>
+        </div>
+    </div>
+
+    <!-- Image Modal for viewing uploaded images -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-50 flex justify-center items-center p-4">
+        <div class="bg-white p-2 rounded-lg shadow-2xl max-w-lg mx-auto" dir="ltr">
+            <img id="modalImage" src="" alt="Uploaded Document" class="max-w-full max-h-[80vh] object-contain rounded-md" />
+            <div class="text-right mt-2">
+                <button onclick="closeImageModal()" class="text-white bg-pti-red hover:bg-red-900 py-1 px-4 rounded-lg text-sm">بند کریں</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Language Translations and Core Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, onSnapshot, collection, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        setLogLevel('Debug');
+        
+        // --- Global Firebase Variables (Mandatory) ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // یہ وہ خفیہ پاس ورڈ ہے جو ایڈمن لاگ ان کے لیے استعمال ہو گا
+        const ADMIN_PASSWORD = "1234"; 
+        
+        // Firebase Instances
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // jsPDF اور html2canvas کو گلوبل ونڈو آبجیکٹ میں محفوظ کر لیں
+        const { jsPDF } = window.jspdf;
+
+        const translations = {
+            ur: { 
+                dir: 'rtl', font: '', bismillah: "بسم اللہ الرحمن الرحیم", headerTitle: "المہریہ کمپیوٹر اکیڈمی", headerSubTitle: "مخدوم پور پہوڑاں", instructorName: "محمد کاشف اسماعیل", 
+                instructorContact: "0302-7822058", 
+                langText: "EN", initialTitle: "اختیار کریں", btnStudent: "طالب علم رجسٹریشن", btnStudentDesc: "نیا داخلہ فارم پُر کریں", btnAdmin: "ایڈمن لاگ ان", btnAdminDesc: "صرف دفتری استعمال", formTitle: "نئی رجسٹریشن", back: "واپس جائیں", lblSName: "طالب علم کا نام:", lblFName: "والد کا نام:", lblMobile: "موبائل نمبر:", lblCnic: "CNIC نمبر:", lblPDetails: "طالب علم کی ذاتی تفصیلات", lblAddressDetails: "رہائشی معلومات", lblAddress: "مکمل پتہ:", lblCity: "شہر:", lblDistrict: "ضلع:", lblCourseInfo: "کورس اور فیس کی معلومات", lblCourse: "کورس:", lblPaidFee: "ادا شدہ فیس:", lblDiscount: "رعایت کی رقم:", lblPaymentMethod: "طریقہ ادائیگی:", lblDocs: "ضروری دستاویزات اور تصاویر", lblLoginTitle: "ایڈمن لاگ ان", lblPass: "پاسورڈ", lblLogin: "لاگ ان", lblWarning: "غلط پاسورڈ", lblRegBtn: "رجسٹر کریں", lblAdminDashboard: "ایڈمن ڈیش بورڈ (رجسٹریشن)", lblStdPic: "طالب علم کی تصویر (Selfie)", lblCNICS: "طالب علم کا CNIC", lblCNICF: "والد کا CNIC", lblFront: "فرنٹ", lblBack: "بیک", lblQualification: "تعلیمی قابلیت", msgAuthNotReady: "براہ کرم ایک سیکنڈ انتظار کریں، سسٹم لوڈ ہو رہا ہے۔", msgSuccessTitle: "کامیاب رجسٹریشن", msgSuccessText: "طالب علم کا ڈیٹا کامیابی سے محفوظ کر لیا گیا ہے۔", msgErrorTitle: "رجسٹریشن فیل", msgErrorText: "براہ کرم تمام ضروری معلومات اور تصاویر (سیلفی، CNIC فرنٹ/بیک) فراہم کریں۔", dashTitle: "رجسٹرڈ طلباء", dashName: "نام", dashFName: "والد", dashMobile: "موبائل", dashCourse: "کورس", dashFee: "فیس", dashDate: "تاریخ", dashUserId: "رجسٹر کرنے والا ID", dashNoStudents: "ابھی تک کوئی طالب علم رجسٹرڈ نہیں ہے۔", dashTrends: "کورس ٹرینڈ رپورٹ", dashTotal: "کل رجسٹریشنز", dashViewDoc: "دیکھیں", fileSelected: 'فائل منتخب شدہ', fileNotSelected: 'کوئی فائل منتخب نہیں', msgFileSizeExceeded: 'فائل کا سائز زیادہ ہے (زیادہ سے زیادہ 500KB)۔ براہ کرم چھوٹی تصویر استعمال کریں۔',
+                dashTrendMsg: (course, count) => `اس وقت **${course}** میں ${count} رجسٹریشنز کے ساتھ سب سے زیادہ رجحان ہے!`,
+                // نئی پی ڈی ایف ٹرانسلیشنز
+                pdfBtn: "پرنٹ کریں / PDF بنائیں",
+                pdfStatusGenerating: "...پی ڈی ایف بنائی جا رہی ہے اور بیک اینڈ میں محفوظ کی جا رہی ہے",
+                pdfStatusSuccess: "✅ پی ڈی ایف تیار ہے اور ڈاؤن لوڈ ہو چکی ہے۔ اب آپ اسے شیئر کر سکتے ہیں۔",
+                pdfStatusError: "❌ پی ڈی ایف بنانے میں ایک خرابی پیش آئی۔ کنسول چیک کریں۔"
+            },
+            en: { 
+                dir: 'ltr', font: 'font-en', bismillah: "In the name of Allah, the Most Gracious, the Most Merciful", headerTitle: "Almehria Computer Academy", headerSubTitle: "Makhdoom Pur Pahoran", instructorName: "Muhammad Kashif Ismail", 
+                instructorContact: "0302-7822058", 
+                langText: "اردو", initialTitle: "Select Option", btnStudent: "Student Registration", btnStudentDesc: "Fill new admission form", btnAdmin: "Admin Login", btnAdminDesc: "Office use only", formTitle: "New Registration", back: "Go Back", lblSName: "Student Name:", lblFName: "Father Name:", lblMobile: "Mobile Number:", lblCnic: "CNIC Number:", lblPDetails: "Student Personal Details", lblAddressDetails: "Residential Information", lblAddress: "Full Address:", lblCity: "City:", lblDistrict: "District:", lblCourseInfo: "Course and Fee Information", lblCourse: "Course:", lblPaidFee: "Paid Fee:", lblDiscount: "Discount Amount:", lblPaymentMethod: "Payment Method:", lblDocs: "Required Documents & Photos", lblLoginTitle: "Admin Login", lblPass: "Password", lblLogin: "Login", lblWarning: "Incorrect Password", lblRegBtn: "Register", lblAdminDashboard: "Admin Dashboard (Registration)", lblStdPic: "Student Photo (Selfie)", lblCNICS: "Student's CNIC", lblCNICF: "Father's CNIC", lblFront: "Front", lblBack: "Back", lblQualification: "Educational Qualification", msgAuthNotReady: "Please wait a second, the system is loading.", msgSuccessTitle: "Registration Successful", msgSuccessText: "Student data has been saved successfully.", msgErrorTitle: "Registration Failed", msgErrorText: "Please provide all required information and photos (Selfie, CNIC Front/Back).", dashTitle: "Registered Students", dashName: "Name", dashFName: "Father", dashMobile: "Mobile", dashCourse: "Course", dashFee: "Fee", dashDate: "Date", dashUserId: "Registrar ID", dashNoStudents: "No students registered yet.", dashTrends: "Course Trend Report", dashTotal: "Total Registrations", dashViewDoc: "View", fileSelected: 'File Selected', fileNotSelected: 'No file selected', msgFileSizeExceeded: 'File size limit exceeded (Max 500KB). Please use a smaller image.',
+                dashTrendMsg: (course, count) => `The current trend is highest in **${course}** with ${count} registrations!`,
+                // نئی پی ڈی ایف ٹرانسلیشنز
+                pdfBtn: "Print / Generate PDF",
+                pdfStatusGenerating: "...Generating PDF and saving to backend",
+                pdfStatusSuccess: "✅ PDF generated and downloaded. You can now share it.",
+                pdfStatusError: "❌ An error occurred during PDF generation. Check console."
+            }
+        };
+        window.translations = translations;
+        let currentLang = 'ur';
+        window.currentLang = currentLang;
+
+        window.getText = (key) => {
+            if (typeof translations[currentLang][key] === 'function') {
+                return translations[currentLang][key];
+            }
+            return translations[currentLang][key] || key;
+        };
+
+        window.applyTranslations = () => {
+            const langData = translations[currentLang];
+            document.documentElement.setAttribute('dir', langData.dir);
+            document.body.className = document.body.className.replace(/\s*font-en/g, '') + (langData.font ? ' ' + langData.font : '');
+
+            document.getElementById('langSwitchBtn').innerText = langData.langText;
+            
+            // Update Instructor Info
+            document.getElementById('instructorNameDisplay').innerText = `انسٹرکٹر: ${langData.instructorName}`;
+            // فون نمبر کو LTR سمت دی گئی ہے تاکہ یہ ٹھیک نظر آئے
+            document.getElementById('instructorContactDisplay').innerHTML = `<span data-lang="instructorContact">رابطہ:</span> <span class="font-en text-3xl font-black text-yellow-300" dir="ltr">${langData.instructorContact}</span>`;
+
+
+            document.querySelectorAll('[data-lang]').forEach(el => {
+                const key = el.getAttribute('data-lang');
+                if (typeof langData[key] === 'string') {
+                    el.innerText = langData[key] || key;
+                }
+            });
+            
+            document.querySelectorAll('input:not([type="file"]), select, textarea').forEach(input => {
+                input.dir = langData.dir;
+                if(input.id === 'adminPass') {
+                    input.placeholder = langData.lblPass;
+                }
+                // Numbers and CNIC fields remain LTR for correct display
+                if(input.id === 'adminPass' || input.id === 'mobile' || input.id === 'cnic' || input.id === 'paidFee' || input.id === 'discount') input.dir = 'ltr';
+            });
+
+             // Update PDF button text
+            const pdfButton = document.getElementById('generatePdfButton');
+            if (pdfButton) {
+                pdfButton.innerText = getText('pdfBtn');
+            }
+        }
+
+        window.toggleLanguage = () => {
+            currentLang = currentLang === 'ur' ? 'en' : 'ur';
+            window.currentLang = currentLang;
+            applyTranslations();
+        }
+
+        // NO INITIAL LOADING OVERLAY: Only show if needed later
+        window.showLoading = (message) => {
+            document.getElementById('loadingMessage').innerText = message || getText('pdfStatusGenerating');
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        };
+
+        window.hideLoading = () => {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        };
+
+        window.showMessage = (titleKey, textKey) => {
+            // If textKey is a string, use it as a key for translation, otherwise use it directly (for error messages)
+            const text = translations[currentLang][textKey] || textKey;
+            
+            document.getElementById('messageTitle').innerText = getText(titleKey);
+            document.getElementById('messageText').innerText = text;
+            document.getElementById('messageBox').classList.remove('hidden');
+        };
+
+        window.hideMessage = () => {
+            document.getElementById('messageBox').classList.add('hidden');
+        };
+        
+        // Image Modal Functions
+        window.openImageModal = (base64Image) => {
+            if (!base64Image) {
+                return showMessage('msgErrorTitle', 'Image data is missing.');
+            }
+            document.getElementById('modalImage').src = base64Image;
+            document.getElementById('imageModal').classList.remove('hidden');
+        };
+
+        window.closeImageModal = () => {
+            document.getElementById('imageModal').classList.add('hidden');
+            document.getElementById('modalImage').src = '';
+        };
+
+
+        window.showView = (view) => {
+            // Check auth readiness before switching to views that require database access
+            if ((view === 'student' || view === 'dashboard') && !isAuthReady) {
+                // Instead of showing the view, notify the user if not ready
+                return showMessage('msgErrorTitle', 'msgAuthNotReady');
+            }
+
+            document.getElementById('initialView').classList.add('hidden');
+            document.getElementById('adminLoginView').classList.add('hidden');
+            document.getElementById('regFormDisplay').classList.add('hidden');
+            document.getElementById('dashboardView').classList.add('hidden');
+            
+            if (view === 'home') {
+                document.getElementById('initialView').classList.remove('hidden');
+            } else if (view === 'student') {
+                document.getElementById('regFormDisplay').classList.remove('hidden');
+            } else if (view === 'adminLogin') {
+                document.getElementById('adminLoginView').classList.remove('hidden');
+                document.getElementById('loginMessage').classList.add('hidden');
+                document.getElementById('adminPass').value = '';
+            } else if (view === 'dashboard') {
+                 // Check if the current user ID is the admin password (simple auth check)
+                 // NOTE: This is a placeholder check for demo purposes. Real admin auth requires a proper system.
+                 if (auth.currentUser && auth.currentUser.uid === ADMIN_PASSWORD) {
+                    document.getElementById('dashboardView').classList.remove('hidden');
+                 } else {
+                    showMessage('msgErrorTitle', 'براہ کرم پہلے ایڈمن کے طور پر لاگ ان کریں۔');
+                    showView('adminLogin');
+                 }
+            }
+        }
+        
+        // --- CORE FIREBASE & AUTH SETUP ---
+
+        const initializeFirebase = async () => {
+            try {
+                if (firebaseConfig) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (user) => {
+                        isAuthReady = true;
+                        // For admin access demo, we set the UID to ADMIN_PASSWORD if it matches on login.
+                        userId = user ? user.uid : crypto.randomUUID(); 
+                        console.log("Firebase Auth Ready. User ID:", userId);
+                        
+                        // Setup listener immediately if Firestore is ready
+                        setupDashboardListener();
+                    });
+                }
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                showMessage("msgErrorTitle", "Firebase initialization failed. Check console for details.");
+            }
+        };
+        
+        // --- PDF GENERATION AND SAVE TO BACKEND ---
+
+        /**
+         * رجسٹری فارم کا پی ڈی ایف بناتا ہے اور اس کی تصدیق فائر اسٹور میں محفوظ کرتا ہے۔
+         */
+        window.generateAndSavePDF = async function() {
+            const statusElement = document.getElementById('pdfStatusMessage');
+            statusElement.textContent = getText('pdfStatusGenerating');
+            
+            // 1. پرنٹ کے لیے HTML عنصر کو منتخب کریں - ہم صرف رج فارم کو ٹارگٹ کر رہے ہیں
+            const formContent = document.getElementById('regForm');
+            const studentName = formContent.querySelector('[name="studentName"]').value;
+            
+            if (!studentName) {
+                statusElement.textContent = '⚠️ براہ کرم پہلے رجسٹریشن فارم پُر کریں (کم از کم نام ضروری ہے)۔';
+                return;
+            }
+
+            try {
+                // تمام no-print عناصر کو موقوفی طور پر چھپا دیں تاکہ وہ سکرین شاٹ میں نہ آئیں
+                const noPrintElements = document.querySelectorAll('.no-print');
+                noPrintElements.forEach(el => el.style.display = 'none');
+                
+                // 2. html2canvas کے ذریعے DOM عنصر کو کینوس میں تبدیل کریں
+                const canvas = await html2canvas(formContent, {
+                    scale: 2, // بہتر ریزولوشن کے لیے
+                    useCORS: true,
+                    // نو پرنٹ بٹن کو کینوس میں شامل ہونے سے روکیں
+                    ignoreElements: (element) => element.classList.contains('no-print') 
+                });
+                
+                // no-print عناصر کو واپس دکھائیں
+                noPrintElements.forEach(el => el.style.removeProperty('display'));
+
+
+                const imgData = canvas.toDataURL('image/png');
+                
+                // 3. کینوس کو jsPDF کے ذریعے PDF میں تبدیل کریں
+                const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                // اگر پی ڈی ایف کئی صفحات پر مشتمل ہو تو
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                // 4. PDF فائل کا نام سیٹ کریں اور ڈاؤن لوڈ کریں (Shareable File)
+                const filename = `Reg_Form_${studentName}_${new Date().getTime()}.pdf`;
+                pdf.save(filename); // فائل ڈاؤن لوڈ ہو جائے گی
+
+                statusElement.textContent = getText('pdfStatusSuccess');
+                
+                // 5. بیک اینڈ میں ریکارڈ محفوظ کریں (Auto Save Screenshot/PDF)
+                await saveRecordToFirestore(filename, imgData, studentName);
+
+            } catch (error) {
+                console.error("PDF Generation Error:", error);
+                statusElement.textContent = getText('pdfStatusError');
+                // اگر کوئی خرابی ہو تو یقینی بنائیں کہ no-print عناصر واپس نظر آ رہے ہیں۔
+                document.querySelectorAll('.no-print').forEach(el => el.style.removeProperty('display'));
+            }
+        }
+
+        /**
+         * فائر اسٹور میں رجسٹری ریکارڈ کی تصدیق کو محفوظ کرتا ہے۔
+         */
+        async function saveRecordToFirestore(filename, base64Image, studentName) {
+            if (!isAuthReady || !userId) {
+                console.warn("Firestore not ready. Record not saved to backend.");
+                return;
+            }
+            
+            const mobileNumber = document.getElementById('mobile').value;
+            const courseName = document.querySelector('[name="course"]').value;
+
+            const recordData = {
+                userId: userId,
+                // صارف کے پرائیویٹ ڈیٹا کا راستہ استعمال کریں
+                path: `/artifacts/${appId}/users/${userId}/registry_records`, 
+                timestamp: serverTimestamp(),
+                filename: filename,
+                student_name: studentName,
+                mobile_number: mobileNumber,
+                course: courseName,
+                // ہم صرف ایک لاگ محفوظ کر رہے ہیں، مکمل تصویر نہیں۔
+                log_message: "Registry form PDF/Screenshot saved (metadata only)." 
+            };
+
+            const collectionPath = `artifacts/${appId}/users/${userId}/registry_records`;
+
+            try {
+                await addDoc(collection(db, collectionPath), recordData);
+                console.log("Record successfully saved to Firestore (Backend simulation).");
+            } catch (e) {
+                console.error("Error writing document to Firestore:", e);
+                document.getElementById('pdfStatusMessage').textContent += ' ⚠️ بیک اینڈ میں محفوظ کرنے میں خرابی۔';
+            }
+        }
+        
+        // --- REGISTRATION LOGIC ---
+        
+        const MAX_FILE_SIZE_BYTES = 500000; // 500 KB limit for Base64 storage
+
+        // Convert File to Base64 String
+        const fileToBase64 = (file) => {
+            return new Promise((resolve, reject) => {
+                if (!file) {
+                    return resolve(null);
+                }
+                
+                if (file.size > MAX_FILE_SIZE_BYTES) { 
+                    return reject(new Error(getText('msgFileSizeExceeded')));
+                }
+                
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (error) => reject(error);
+            });
+        };
+
+        // Get file input by name
+        const getFile = (form, name) => form.querySelector(`[name="${name}"]`).files[0];
+
+        window.handleRegistration = async (event) => {
+            event.preventDefault();
+            if (!isAuthReady) return showMessage("msgErrorTitle", "Authentication is not ready. Try again in a moment.");
+
+            const form = event.target;
+            const studentPhotoFile = getFile(form, 'studentPhoto');
+            const studentCnicFFile = getFile(form, 'studentCnicFront');
+            const studentCnicBFile = getFile(form, 'studentCnicBack');
+            
+            // Required inputs
+            const requiredFields = [
+                form.querySelector('[name="studentName"]').value,
+                form.querySelector('[name="fatherName"]').value,
+                form.querySelector('[name="mobile"]').value,
+                form.querySelector('[name="course"]').value,
+                form.querySelector('[name="address"]').value, 
+                form.querySelector('[name="city"]').value,
+                form.querySelector('[name="district"]').value,
+            ];
+            const requiredFiles = [studentPhotoFile, studentCnicFFile, studentCnicBFile];
+
+            if (requiredFields.some(f => !f) || requiredFiles.some(f => !f)) {
+                return showMessage("msgErrorTitle", "msgErrorText");
+            }
+            
+            showLoading("ڈیٹا اور تمام دستاویزات محفوظ کی جا رہی ہیں...");
+
+            try {
+                // Convert all files to Base64. File size check happens inside fileToBase64
+                const [photoBase64, cnicFBase64, cnicBBase64] = await Promise.all([
+                    fileToBase64(studentPhotoFile),
+                    fileToBase64(studentCnicFFile),
+                    fileToBase64(studentCnicBFile),
+                ]);
+
+                const studentData = {
+                    studentName: form.querySelector('[name="studentName"]').value,
+                    fatherName: form.querySelector('[name="fatherName"]').value,
+                    mobile: form.querySelector('[name="mobile"]').value,
+                    cnic: form.querySelector('[name="cnic"]').value,
+                    qualification: form.querySelector('[name="qualification"]').value,
+                    
+                    address: form.querySelector('[name="address"]').value,
+                    city: form.querySelector('[name="city"]').value,
+                    district: form.querySelector('[name="district"]').value,
+
+                    course: form.querySelector('[name="course"]').value,
+                    paidFee: parseInt(form.querySelector('[name="paidFee"]').value || 0),
+                    discount: parseInt(form.querySelector('[name="discount"]').value || 0),
+                    paymentMethod: form.querySelector('[name="paymentMethod"]').value,
+                    
+                    // Base64 Images
+                    studentPhoto: photoBase64, 
+                    studentCnicFront: cnicFBase64,
+                    studentCnicBack: cnicBBase64,
+                    
+                    registrationDate: serverTimestamp(),
+                    registrarId: userId,
+                };
+
+                const collectionPath = `artifacts/${appId}/public/data/students`;
+                await addDoc(collection(db, collectionPath), studentData);
+
+                // Reset form and previews on success
+                form.reset();
+                window.resetFilePreviews();
+                
+                hideLoading();
+                showMessage("msgSuccessTitle", "msgSuccessText");
+
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                // Handle file size error message specifically
+                let errorMessage = e.message || "Registration failed due to a database error.";
+                
+                hideLoading();
+                showMessage("msgErrorTitle", errorMessage);
+            }
+        };
+        
+        // --- INPUT MASKING & VALIDATION ---
+        const applyMasks = () => {
+            const mobileInput = document.getElementById('mobile');
+            const cnicInput = document.getElementById('cnic');
+
+            // Mobile Mask: 03XX-XXXXXXX (Max 11 digits)
+            if (mobileInput) {
+                mobileInput.addEventListener('input', (e) => {
+                    let value = e.target.value.replace(/\D/g, ''); // Remove all non-digits
+                    if (value.length > 11) value = value.slice(0, 11); // Max 11 digits
+                    
+                    // Format: 03XX-XXXXXXX
+                    if (value.length > 4) {
+                        value = value.substring(0, 4) + '-' + value.substring(4);
+                    }
+                    e.target.value = value;
+                });
+            }
+
+            // CNIC Mask: XXXXX-XXXXXXX-X (Max 13 digits)
+            if (cnicInput) {
+                cnicInput.addEventListener('input', (e) => {
+                    let value = e.target.value.replace(/\D/g, ''); // Remove all non-digits
+                    if (value.length > 13) value = value.slice(0, 13); // Max 13 digits
+
+                    // Format: XXXXX-XXXXXXX-X
+                    if (value.length > 12) {
+                        value = value.substring(0, 5) + '-' + value.substring(5, 12) + '-' + value.substring(12);
+                    } else if (value.length > 5) {
+                        value = value.substring(0, 5) + '-' + value.substring(5);
+                    }
+                    e.target.value = value;
+                });
+            }
+        };
+
+        // --- FILE NAME DISPLAY AND RESET ---
+        window.updateFileNameDisplay = (event) => {
+            const input = event.target;
+            const name = input.name;
+            // Get the sibling div/span where the message is shown
+            const displayElement = document.getElementById(`${name}Display`);
+
+            if (input.files && input.files.length > 0) {
+                displayElement.innerText = `${input.files[0].name} (${getText('fileSelected')})`;
+                displayElement.classList.add('text-pti-green', 'font-semibold');
+                displayElement.classList.remove('text-gray-500');
+            } else {
+                 displayElement.innerText = getText('fileNotSelected');
+                 displayElement.classList.remove('text-pti-green', 'font-semibold');
+                 displayElement.classList.add('text-gray-500');
+            }
+        }
+        
+        window.resetFilePreviews = () => {
+            // Reset photo preview 
+            document.getElementById('studentPhotoPreview').style.backgroundImage = 'none';
+            document.getElementById('studentPhotoPreview').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.218A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.218A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>';
+            
+            // Reset CNIC displays
+            const cnicFrontDisplay = document.getElementById('studentCnicFrontDisplay');
+            const cnicBackDisplay = document.getElementById('studentCnicBackDisplay');
+            if(cnicFrontDisplay) cnicFrontDisplay.innerText = getText('fileNotSelected');
+            if(cnicBackDisplay) cnicBackDisplay.innerText = getText('fileNotSelected');
+            
+            // Re-apply translations for dynamic content
+            applyTranslations(); 
+        }
+
+        // --- ADMIN LOGIN ---
+        
+        window.handleLogin = () => {
+            const pass = document.getElementById('adminPass').value;
+            if (pass === ADMIN_PASSWORD) {
+                // Simple check for dashboard access. The user ID is set to ADMIN_PASSWORD 
+                // only locally for dashboard access check, not affecting real Firebase auth.
+                auth.currentUser.uid = ADMIN_PASSWORD; 
+                showView('dashboard');
+                // setupDashboardListener is already running globally due to onAuthStateChanged
+            } else {
+                document.getElementById('loginMessage').classList.remove('hidden');
+            }
+        }
+
+        // --- DASHBOARD LISTENER & TRENDS LOGIC ---
+
+        const setupDashboardListener = () => {
+            if (!db || !isAuthReady) return; // Wait for Firebase auth to be ready
+            
+            const collectionPath = `artifacts/${appId}/public/data/students`;
+            const q = query(collection(db, collectionPath));
+
+            // onSnapshot ensures real-time updates and "no loading" feeling on the dashboard once viewed
+            onSnapshot(q, (snapshot) => {
+                const students = [];
+                snapshot.forEach((doc) => {
+                    students.push({ id: doc.id, ...doc.data() });
+                });
+                renderStudentList(students);
+                renderCourseTrends(students);
+            }, (error) => {
+                console.error("Error listening to students:", error);
+                document.getElementById('studentListContainer').innerHTML = `<p class="text-center text-lg text-red-500 mt-8">ڈیٹا بیس کنکشن میں خرابی آئی۔</p>`;
+                document.getElementById('courseTrendContainer').innerHTML = `<p class="text-center text-lg text-red-500 mt-8">ڈیٹا بیس کنکشن میں خرابی آئی۔</p>`;
+            });
+        };
+
+        const renderCourseTrends = (students) => {
+            const container = document.getElementById('courseTrendContainer');
+            if (!container) return;
+            
+            if (students.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-500 mt-4">${getText('dashNoStudents')}</p>`;
+                return;
+            }
+
+            // 1. Calculate Trends
+            const courseCounts = students.reduce((acc, student) => {
+                const course = student.course || 'نامعلوم کورس';
+                acc[course] = (acc[course] || 0) + 1;
+                return acc;
+            }, {});
+
+            // 2. Find the top trend
+            let topCourse = '';
+            let maxCount = 0;
+            let totalRegistrations = students.length;
+
+            Object.entries(courseCounts).forEach(([course, count]) => {
+                if (count > maxCount) {
+                    maxCount = count;
+                    topCourse = course;
+                }
+            });
+
+            // 3. Render Trend Report
+            let trendListHtml = '';
+            // Convert to array and sort by count descending
+            const sortedCourses = Object.entries(courseCounts).sort(([, countA], [, countB]) => countB - countA);
+
+            const trendMessageText = getText('dashTrendMsg')(topCourse, maxCount);
+
+            sortedCourses.forEach(([course, count]) => {
+                const percentage = ((count / totalRegistrations) * 100).toFixed(1);
+                const isTop = course === topCourse ? 'border-r-4 border-pti-green pr-2 font-semibold' : 'pr-2';
+                
+                trendListHtml += `
+                    <div class="flex justify-between items-center py-2 ${isTop}">
+                        <span class="text-gray-700">${course}</span>
+                        <div class="flex items-center text-sm font-en">
+                            <span class="text-pti-green font-bold mr-2">${count}</span>
+                            <span class="text-gray-500">(${percentage}%)</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-pti-green text-white p-3 rounded-lg text-center font-bold shadow-md">
+                        <p class="text-lg" data-lang="dashTotal">${getText('dashTotal')}: <span class="font-en text-xl">${totalRegistrations}</span></p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg">
+                        ${trendMessageText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}
+                    </div>
+                    
+                    <h4 class="font-bold text-lg border-b pb-2 mt-4 text-gray-700">تمام کورسز:</h4>
+                    <div class="divide-y divide-gray-200">
+                        ${trendListHtml}
+                    </div>
+                </div>
+            `;
+            // Re-apply translations for dynamic content (needed for trend message)
+            applyTranslations(); 
+        };
+
+        const renderStudentList = (students) => {
+            const container = document.getElementById('studentListContainer');
+            if (!container) return;
+            
+            students.sort((a, b) => (b.registrationDate?.seconds || 0) - (a.registrationDate?.seconds || 0));
+
+            if (students.length === 0) {
+                container.innerHTML = `<p class="text-center text-lg text-gray-500 mt-8" data-lang="dashNoStudents">${getText('dashNoStudents')}</p>`;
+                return;
+            }
+
+            let html = `
+                <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-100 mb-8">
+                <table class="w-full admin-table text-sm">
+                    <thead>
+                        <tr>
+                            <th class="w-16">${getText('lblStdPic')}</th>
+                            <th>${getText('dashName')}</th>
+                            <th>${getText('dashFName')}</th>
+                            <th>${getText('dashMobile')}</th>
+                            <th>${getText('lblCity')}</th> 
+                            <th>${getText('dashCourse')}</th>
+                            <th>${getText('dashFee')}</th>
+                            <th>${getText('lblCNICS')}</th>
+                            <th>${getText('dashDate')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            students.forEach(student => {
+                const date = student.registrationDate ? new Date(student.registrationDate.seconds * 1000).toLocaleDateString(currentLang === 'ur' ? 'ur-PK' : 'en-US', { dateStyle: 'short' }) : 'N/A';
+                const totalFee = (student.paidFee || 0) - (student.discount || 0); // Handle potential missing fields
+                
+                // Show a generic placeholder if image data is missing
+                const photoStyle = student.studentPhoto ? `style="background-image: url('${student.studentPhoto}');"` : '';
+                const photoContent = student.studentPhoto ? '' : '<span class="text-xs text-gray-400">تصویر</span>';
+                
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td>
+                            <div class="photo-placeholder w-12 h-12 mx-auto cursor-pointer" onclick="openImageModal('${student.studentPhoto || ''}')" ${photoStyle}>
+                                ${photoContent}
+                            </div>
+                        </td>
+                        <td>${student.studentName}</td>
+                        <td>${student.fatherName}</td>
+                        <td dir="ltr">${student.mobile}</td>
+                        <td>${student.city || 'N/A'}</td> 
+                        <td>${student.course}</td>
+                        <td>${totalFee} PKR</td>
+                        <td>
+                            <button onclick="openImageModal('${student.studentCnicFront || ''}')" class="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded hover:bg-gray-300 transition">${getText('lblFront')}</button>
+                            <button onclick="openImageModal('${student.studentCnicBack || ''}')" class="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded hover:bg-gray-300 transition">${getText('lblBack')}</button>
+                        </td>
+                        <td>${date}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+                </div>
+            `;
+            container.innerHTML = html;
+        };
+
+
+        // --- UI INITIALIZATION ---
+        
+        window.handleImageUpload = (event) => {
+            const file = event.target.files[0];
+            const name = event.target.name;
+
+            if (name === 'studentPhoto' && file) {
+                if (file.size > MAX_FILE_SIZE_BYTES) {
+                    // Show error immediately and clear input
+                    event.target.value = '';
+                    showMessage("msgErrorTitle", getText('msgFileSizeExceeded'));
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const placeholder = document.getElementById('studentPhotoPreview');
+                    placeholder.style.backgroundImage = `url('${e.target.result}')`;
+                    placeholder.innerHTML = ''; 
+                    placeholder.classList.remove('text-sm');
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // For CNIC files, just update the display name
+            if (name.startsWith('studentCnic')) {
+                window.updateFileNameDisplay(event);
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // "نو لوڈنگ" کے اصول کے مطابق، UI کو فوری طور پر لوڈ کریں اور Firebase کو پس منظر میں شروع کریں
+            initializeFirebase(); 
+            
+            document.getElementById('regForm').addEventListener('submit', handleRegistration);
+            
+            document.getElementById('btnStudent').addEventListener('click', function() { showView('student'); });
+            document.getElementById('btnAdmin').addEventListener('click', function() { showView('adminLogin'); });
+
+            document.getElementById('btnBackFromReg').addEventListener('click', function() { showView('home'); });
+            document.getElementById('btnBackFromAdmin').addEventListener('click', function() { showView('home'); });
+            document.getElementById('btnBackFromDashboard').addEventListener('click', function() { showView('home'); });
+            
+            document.getElementById('btnLogin').addEventListener('click', handleLogin);
+            
+            document.getElementById('langSwitchBtn').addEventListener('click', toggleLanguage);
+            
+            // Attach event listeners for file inputs
+            document.getElementById('studentPhotoInput').addEventListener('change', handleImageUpload);
+            document.getElementById('cnicFrontInput').addEventListener('change', handleImageUpload);
+            document.getElementById('cnicBackInput').addEventListener('change', handleImageUpload);
+            
+            // Apply input masks
+            applyMasks();
+            
+            // Initial load/translation setup
+            applyTranslations(); 
+            window.resetFilePreviews(); // Set initial file selection text
+            showView('home');
+        });
+    </script>
+
+    <!-- Header -->
+    <header class="bg-pti-red text-white shadow-lg relative pb-8 no-print">
+        <!-- Language Switcher -->
+        <button class="lang-switch" id="langSwitchBtn">EN</button>
+
+        <div class="container mx-auto px-4 py-6 text-center">
+            <p class="text-sm font-light text-gray-100 mb-2" id="bismillah" data-lang="bismillah">بسم اللہ الرحمن الرحیم</p>
+            
+            <!-- اکیڈمی کا نام -->
+            <h1 class="text-2xl md:text-4xl font-bold leading-relaxed" id="headerTitle" data-lang="headerTitle">المہریہ کمپیوٹر اکیڈمی</h1>
+            <h2 class="text-lg md:text-2xl font-light text-green-200 mt-1" id="headerSubTitle" data-lang="headerSubTitle">مخدوم پور پہوڑاں</h2>
+
+            <!-- انسٹرکٹر کی تفصیلات (نمبر اب نمایاں ہے) -->
+            <div class="mt-4 pt-3 border-t border-red-700">
+                <p id="instructorNameDisplay" class="text-lg font-semibold text-white">انسٹرکٹر: محمد کاشف اسماعیل</p>
+                <!-- UPDATED: فون نمبر اب سب سے نمایاں ہے (بڑا، بولڈ، LTR) -->
+                <p id="instructorContactDisplay" class="text-xl text-yellow-300 font-bold" dir="rtl">
+                    <!-- ٹرانسلیشن فنکشن اسے اپ ڈیٹ کرتا ہے -->
+                </p>
+            </div>
+            
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 mt-8 mb-12 max-w-2xl relative">
+
+        <!-- Initial View: Select Role -->
+        <div id="initialView" class="">
+             <h2 class="text-3xl font-bold text-center text-gray-700 mb-8" id="initialTitle" data-lang="initialTitle">اختیار کریں</h2>
+             <div class="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+                <!-- Student Button -->
+                <button id="btnStudent" class="nav-button flex-1 bg-pti-green text-white font-bold py-6 px-6 rounded-xl shadow-md flex items-center justify-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    <div class="text-right">
+                        <span class="block text-xl" id="btnStudentTitle" data-lang="btnStudent">طالب علم رجسٹریشن</span>
+                        <span class="block text-sm font-light opacity-80" data-lang="btnStudentDesc">نیا داخلہ فارم پُر کریں</span>
+                    </div>
+                </button>
+
+                <!-- Admin Button -->
+                <button id="btnAdmin" class="nav-button flex-1 bg-pti-red text-white font-bold py-6 px-6 rounded-xl shadow-md flex items-center justify-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div class="text-right">
+                        <span class="block text-xl" id="btnAdminTitle" data-lang="btnAdmin">ایڈمن لاگ ان</span>
+                        <span class="block text-sm font-light opacity-80" data-lang="btnAdminDesc">صرف دفتری استعمال</span>
+                    </div>
+                </button>
+             </div>
+        </div>
+
+        <!-- Registration Form -->
+        <!-- regFormDisplay کے اندر موجود تمام فارم کا مواد پرنٹ کے لیے استعمال ہو گا -->
+        <div class="space-y-6 hidden" id="regFormDisplay">
+            <button id="btnBackFromReg" class="text-gray-500 mb-4 text-sm hover:text-pti-red flex items-center gap-1 cursor-pointer no-print">
+                <span>←</span> <span data-lang="back">واپس جائیں</span>
+            </button>
+            <h2 class="text-3xl font-bold text-center text-pti-red mb-4" id="regFormTitle" data-lang="formTitle">نئی رجسٹریشن</h2>
+            
+            <form id="regForm" class="space-y-6">
+                
+                <!-- طالب علم کی تصویر (Selfie) -->
+                <div class="section-card">
+                    <h3 class="font-bold text-lg text-center text-pti-red border-b pb-3 mb-4" data-lang="lblStdPic">طالب علم کی تصویر (Selfie)</h3>
+                    <p class="text-sm text-center text-red-600 mb-4 no-print">(یہ تصویر ریکارڈ میں محفوظ ہو گی - زیادہ سے زیادہ 500KB)</p>
+                    
+                    <!-- Photo Preview Section -->
+                    <div class="flex flex-col items-center justify-center mb-4">
+                        <div id="studentPhotoPreview" class="photo-placeholder">
+                            <!-- SVG Placeholder -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.218A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.218A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </div>
+                        <label class="block text-sm font-medium text-gray-700 mt-2 mb-1 no-print" for="studentPhotoInput">
+                            تصویر منتخب کریں:
+                        </label>
+                        <!-- Updated to use ID for event listener -->
+                        <input type="file" id="studentPhotoInput" name="studentPhoto" accept="image/*" class="mt-1 p-2 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pti-red file:text-white hover:file:bg-red-900 cursor-pointer no-print" required>
+                    </div>
+                </div>
+
+                <!-- طالب علم کی ذاتی تفصیلات -->
+                <div class="section-card">
+                    <h3 class="font-bold text-lg text-center text-pti-red border-b pb-3 mb-4" data-lang="lblPDetails">طالب علم کی ذاتی تفصیلات</h3>
+                    <div class="space-y-3">
+                        <div><label class="block text-sm font-medium text-gray-700" data-lang="lblSName">طالب علم کا نام:</label><input type="text" name="studentName" placeholder="نام" required></div>
+                        <div><label class="block text-sm font-medium text-gray-700" data-lang="lblFName">والد کا نام:</label><input type="text" name="fatherName" placeholder="والد کا نام" required></div>
+                        <div><label class="block text-sm font-medium text-gray-700" data-lang="lblQualification">تعلیمی قابلیت:</label><input type="text" name="qualification" placeholder="میٹرک / انٹرمیڈیٹ / گریجویشن"></div>
+                        <div><label class="block text-sm font-medium text-gray-700" data-lang="lblMobile">موبائل نمبر:</label><input type="tel" name="mobile" placeholder="03XXXXXXXXX (مثلاً 0300-1234567)" id="mobile" dir="ltr" required></div>
+                        <div><label class="block text-sm font-medium text-gray-700" data-lang="lblCnic">CNIC نمبر:</label><input type="text" name="cnic" placeholder="XXXXX-XXXXXXX-X (مثلاً 34101-1234567-1)" id="cnic" dir="ltr"></div>
+                    </div>
+                </div>
+                
+                <!-- نیا سیکشن: رہائشی معلومات -->
+                <div class="section-card">
+                    <h3 class="font-bold text-lg text-center text-pti-red border-b pb-3 mb-4" data-lang="lblAddressDetails">رہائشی معلومات</h3>
+                    <div class="space-y-3">
+                        <div><label class="block text-sm font-medium text-gray-700" data-lang="lblAddress">مکمل پتہ:</label><textarea name="address" rows="2" placeholder="مکان نمبر، گلی، علاقہ" required></textarea></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="block text-sm font-medium text-gray-700" data-lang="lblCity">شہر:</label><input type="text" name="city" placeholder="شہر کا نام" required></div>
+                            <div><label class="block text-sm font-medium text-gray-700" data-lang="lblDistrict">ضلع:</label><input type="text" name="district" placeholder="ضلع کا نام" required></div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- کورس اور فیس -->
+                <div class="section-card">
+                    <h3 class="font-bold text-lg text-center text-pti-red border-b pb-3 mb-4" data-lang="lblCourseInfo">کورس اور فیس کی معلومات</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" data-lang="lblCourse">کورس:</label>
+                            <select name="course" required>
+                                <option>DCA ڈپلومہ</option>
+                                <option>ہارڈویئر اینڈ نیٹ ورکنگ</option>
+                                <option>آفس آٹومیشن</option>
+                                <option>گرافکس ڈیزائننگ</option>
+                                <option>ویب ڈویلپمنٹ</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="block text-sm font-medium text-gray-700" data-lang="lblPaidFee">ادا شدہ فیس:</label><input type="number" name="paidFee" placeholder="0" id="paidFee" dir="ltr"></div>
+                            <div><label class="block text-sm font-medium text-gray-700" data-lang="lblDiscount">رعایت کی رقم:</label><input type="number" name="discount" placeholder="0" id="discount" dir="ltr"></div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" data-lang="lblPaymentMethod">طریقہ ادائیگی:</label>
+                            <select name="paymentMethod">
+                                <option>JazzCash</option>
+                                <option>EasyPaisa</option>
+                                <option>بینک ٹرانسفر</option>
+                                <option>کیش</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ضروری دستاویزات (CNIC) - تصاویر اب محفوظ ہو رہی ہیں -->
+                <div class="section-card">
+                     <h3 class="font-bold text-lg text-center text-pti-red border-b pb-3 mb-4" data-lang="lblDocs">ضروری دستاویزات اور تصاویر</h3>
+                     <p class="text-sm text-center text-red-600 mb-4 no-print">(طالب علم کے CNIC کی تصاویر ریکارڈ میں محفوظ ہوں گی - ہر تصویر زیادہ سے زیادہ 500KB)</p>
+                     
+                     <div class="grid grid-cols-2 gap-4 pt-4 no-print">
+                        <h4 class="col-span-2 text-md font-semibold text-pti-green" data-lang="lblCNICS">طالب علم کا CNIC</h4>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" data-lang="lblFront">فرنٹ:</label>
+                            <input type="file" id="cnicFrontInput" name="studentCnicFront" accept="image/*" class="mt-1 p-2 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 cursor-pointer" required>
+                            <span id="studentCnicFrontDisplay" class="block text-xs mt-1 text-gray-500" data-lang="fileNotSelected">کوئی فائل منتخب نہیں</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" data-lang="lblBack">بیک:</label>
+                            <input type="file" id="cnicBackInput" name="studentCnicBack" accept="image/*" class="mt-1 p-2 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 cursor-pointer" required>
+                            <span id="studentCnicBackDisplay" class="block text-xs mt-1 text-gray-500" data-lang="fileNotSelected">کوئی فائل منتخب نہیں</span>
+                        </div>
+                     </div>
+                     
+                     <!-- CNIC کا مواد جو پرنٹ میں بھی ظاہر ہو گا (تصویر کی جگہ ایک نوٹ) -->
+                     <div class="text-center text-sm text-gray-500 border-t pt-4 mt-4 print-only">
+                         <p class="font-bold">نوٹ:</p>
+                         <p>طالب علم کے CNIC کی تصاویر بیک اینڈ ریکارڈ میں محفوظ ہیں۔</p>
+                     </div>
+                     
+                     <div class="grid grid-cols-2 gap-4 border-t pt-4 mt-4 opacity-50 pointer-events-none no-print">
+                        <h4 class="col-span-2 text-md font-semibold text-pti-green" data-lang="lblCNICF">والد کا CNIC (ریکارڈ نہیں ہوتا)</h4>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" data-lang="lblFront">فرنٹ:</label>
+                            <input type="file" accept="image/*" class="mt-1 p-2 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" data-lang="lblBack">بیک:</label>
+                            <input type="file" accept="image/*" class="mt-1 p-2 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-700">
+                        </div>
+                     </div>
+                </div>
+
+
+                <!-- رجسٹریشن بٹن -->
+                <button type="submit" class="bg-pti-green text-white font-bold py-3 rounded-lg w-full mt-4 shadow hover:bg-green-700 transition no-print" data-lang="lblRegBtn">
+                    رجسٹر کریں
+                </button>
+                
+                <!-- نیا پرنٹ بٹن (رجسٹر فارم کے آخر میں) -->
+                 <div class="pt-6 text-center border-t border-gray-300 no-print">
+                    <button id="generatePdfButton" onclick="generateAndSavePDF()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 w-full flex items-center justify-center">
+                        <svg class="w-5 h-5 inline mr-2 align-middle" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm1-9V3"></path></svg>
+                        پرنٹ کریں / PDF بنائیں
+                    </button>
+                    <div id="pdfStatusMessage" class="mt-4 text-sm font-medium text-center text-red-600 min-h-[1.5rem]"></div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Admin Login View -->
+        <div id="adminLoginView" class="bg-white rounded-2xl shadow-xl p-8 border-t-4 border-pti-red hidden max-w-md mx-auto no-print">
+            <button id="btnBackFromAdmin" class="text-gray-500 mb-4 text-sm hover:text-pti-red flex items-center gap-1 cursor-pointer">
+                <span>←</span> <span data-lang="back">واپس جائیں</span>
+            </button>
+            <h2 class="text-2xl font-bold text-center text-pti-red mb-4" data-lang="lblLoginTitle">ایڈمن لاگ ان</h2>
+            
+            <p class="text-center text-gray-600 mb-6" data-lang="btnAdminDesc">صرف دفتری استعمال</p> 
+
+            <input type="password" id="adminPass" class="mb-4 text-center" dir="ltr" data-lang="lblPass" placeholder="پاسورڈ">
+            <button id="btnLogin" class="bg-pti-red text-white font-bold py-2 w-full rounded hover:bg-red-900 transition" data-lang="lblLogin">لاگ ان</button>
+            <p id="loginMessage" class="text-red-600 text-center mt-2 hidden" data-lang="lblWarning">غلط پاسورڈ</p>
+        </div>
+        
+        <!-- Dashboard View -->
+        <div id="dashboardView" class="hidden no-print">
+            <button id="btnBackFromDashboard" class="text-gray-500 mb-4 text-sm hover:text-pti-red flex items-center gap-1 cursor-pointer">
+                <span>←</span> <span data-lang="back">واپس جائیں</span>
+            </button>
+            <h2 class="text-3xl font-bold text-center text-pti-red mb-8" data-lang="lblAdminDashboard">ایڈمن ڈیش بورڈ</h2>
+            
+            <!-- Course Trend Report -->
+            <div class="section-card mb-8">
+                <h3 class="font-bold text-xl text-center text-pti-green border-b pb-3 mb-4" data-lang="dashTrends">کورس ٹرینڈ رپورٹ</h3>
+                <div id="courseTrendContainer">
+                    <!-- Trends data will be loaded here in real-time -->
+                    <p class="text-center text-gray-500 mt-4">ڈیٹا لوڈ ہو رہا ہے...</p>
+                </div>
+            </div>
+
+            <!-- Student List -->
+            <div class="section-card">
+                 <h3 class="font-bold text-xl text-center text-pti-green border-b pb-3 mb-4" data-lang="dashTitle">رجسٹرڈ طلباء</h3>
+                 <div id="studentListContainer">
+                    <!-- Student list data will be loaded here from Firestore in real-time -->
+                    <p class="text-center text-gray-500 mt-8">ڈیٹا لوڈ ہو رہا ہے...</p>
+                 </div>
+            </div>
+
+            <p class="bg-yellow-100 text-yellow-800 p-3 rounded text-sm text-center mt-8">
+                یہ تمام ڈیٹا براہ راست Firestore Database سے دکھایا جا رہا ہے۔ CNIC کی تصاویر دیکھنے کے لیے بٹن پر کلک کریں۔
+            </p>
+            <p class="text-gray-500 text-sm mt-4 text-center">
+                <span data-lang="dashUserId">رجسٹر کرنے والا ID</span>: <span class="font-en text-xs break-all">${userId || 'Loading...'}</span>
+            </p>
+        </div>
+
+    </main>
+
+    <footer class="text-center py-4 text-gray-500 text-sm no-print">
+        &copy; 2025 <span data-lang="headerTitle">المہریہ کمپیوٹر اکیڈمی</span>
+    </footer>
+</body>
+</html>
